@@ -2,8 +2,8 @@
 pragma solidity ^0.8.12;
 
 import "../interfaces/IL2Registry.sol";
-import "../interfaces/ILease.sol";
-import "../ERC4907.sol";
+import "./Lease.sol";
+import "./ERC4907.sol";
 
 contract LeaseNotary is ERC4907 {
     IL2Registry l2Registry =
@@ -50,16 +50,16 @@ contract LeaseNotary is ERC4907 {
 
     /// @notice Sync the user information with the NFT's lease contract
     function syncUser(uint256 tokenId) internal {
-        ILease lease = findLease(_houseAddrs[tokenId]);
+        Lease lease = findLease(_houseAddrs[tokenId]);
         ERC4907.UserInfo memory info = lease.user();
         ERC4907.setUser(tokenId, info.user, info.expires);
     }
 
     /// @notice Find the lease contract by its ENS label (i.e., hosueAddr)
-    function findLease(string memory label) public view returns (ILease) {
+    function findLease(string memory label) public view returns (Lease) {
         string memory ens = string.concat(label, ".leasenotary.eth");
         bytes32 _hash = l2Registry.namehash(ens);
         address lease = l2Registry.addr(_hash);
-        return ILease(lease);
+        return Lease(lease);
     }
 }
