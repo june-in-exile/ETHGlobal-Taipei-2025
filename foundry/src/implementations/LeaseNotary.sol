@@ -51,7 +51,7 @@ contract LeaseNotary is ERC4907 {
     /// @notice Sync the user information with the NFT's lease contract
     function syncUser(uint256 tokenId) internal {
         Lease lease = findLease(_houseAddrs[tokenId]);
-        ERC4907.UserInfo memory info = lease.user();
+        ERC4907.UserInfo memory info = lease.getUserInfo();
         ERC4907.setUser(tokenId, info.user, info.expires);
     }
 

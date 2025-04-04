@@ -2,39 +2,36 @@
 import "../implementations/ERC4907.sol";
 
 interface ILease {
-    /// @notice Landlord sets the monthly rent amount, lease term (in months), and deposit (in months of rent)
-    function drawUp(
-        uint256 monthlyRent_,
-        uint256 leaseTerm_,
-        uint256 depositMonths_
+    /// @notice Set rental terms (only landlord)
+    function setRentalTerms(
+        uint256 _monthlyRent,
+        uint256 _durationMonths,
+        uint256 _depositInMonths
     ) external;
 
-    /// @notice When a tenant wants to rent the property, they can deposit the security amount (monthlyRent * depositMonths) and wait for landlord approval
-    /// @dev Multiple tenants can make deposits simultaneously
-    /// @dev Should record each tenant's deposit details including: start date, lease term, deposit amount, expiration date, etc.
-    /// @param starts_ Can be any time on the day before the intended lease start date
-    function deposit(uint256 starts_) external;
+    /// @notice Apply to rent by depositing security payment
+    /// @dev Stores each applicant's terms (start date, duration, etc.)
+    /// @param intendedStartDay Timestamp of day before desired start
+    function applyToRent(uint256 intendedStartDay) external payable;
 
-    /// @notice Get the start of the next day in Taiwan Time Zone (GMT+8)
-    /// @param time UNIX timestamp
-    /// @return The start of the next GMT+8 day as a UNIX timestamp
-    function nextTaiwanDay(uint256 time) external pure returns (uint256);
+    /// @notice Approve tenant and refund others
+    function approveTenant(address tenant) external;
 
-    /// @notice Landlord selects a tenant and returns deposits to all other applicants
-    function agree(address tenant_) external;
+    /// @notice Reject applicant and refund deposit
+    function rejectApplicant(address applicant) external;
 
-    /// @notice Landlord rejects a applicant and returns his deposit
-    function reject(address applicant_) external;
+    /// @notice Withdraw application deposit (for applicants)
+    function withdrawApplication() external;
 
-    /// @notice Tenant withdraws their deposit voluntarily
-    function withdraws() external;
+    /// @notice Pay rent to the landlord directly
+    function payRent() external;
 
-    /// @notice Checks if the landlord can reclaim the property
-    function reclaimable() external view returns (bool);
+    /// @notice Check if property can be reclaimed
+    function canReclaim() external view returns (bool);
 
-    /// @notice Landlord reclaims the property
-    function reclaim() external;
+    /// @notice Reclaim property (when lease ends)
+    function reclaimHouse() external;
 
-    /// @notice Returns an ERC4907.UserInfo struct containing the current tenant's address and lease expiration timestamp
-    function user() external view returns (ERC4907.UserInfo memory);
+    /// @notice Get current tenant info
+    function getUserInfo() external view returns (ERC4907.UserInfo memory);
 }
