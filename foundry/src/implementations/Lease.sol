@@ -15,20 +15,31 @@ contract Lease is ILease, Ownable {
         uint256 depositInMonths; // deposit for how many months
     }
 
+    struct Agreement {
+        address tenant;
+        uint256 starts;
+        uint256 expires;
+        uint256 monthlyRent;
+        uint256 durationMonths;
+        uint256 depositInMonths;
+        uint256 rentPaid;
+        uint256 remainingDeposit;
+    }
+
     IERC20 public immutable USDC;
     address public immutable leaseNotary;
     uint256 public immutable tokenId;
     string public houseAddr;
 
+    bool public rented;
     uint256 public monthlyRent;
     uint256 public durationMonths;
     uint256 public depositInMonths;
 
-    ERC4907.UserInfo private _userInfo;
-    uint256 private _remainingDeposit;
-    uint256 private _rentPaid;
-
-    mapping(address => Application) _applications;
+    Agreement private _agreement;
+    address[] private _applicants;
+    mapping(address => Application) private _applications;
+    mapping(address => uint256) private _debtRecords;
 
     constructor(
         address _usdc,
@@ -37,8 +48,6 @@ contract Lease is ILease, Ownable {
     ) Ownable(msg.sender) {
         leaseNotary = _leaseNotary;
         tokenId = _tokenId;
-        _userInfo.user = address(0);
-        _userInfo.expires = 0;
 
         LeaseNotary notary = LeaseNotary(_leaseNotary);
         USDC = IERC20(_usdc);
@@ -50,7 +59,9 @@ contract Lease is ILease, Ownable {
         uint256 _durationMonths,
         uint256 _depositInMonths
     ) public onlyOwner {
-        require(_monthlyRent >= 0, "_monthlyRent is negative");
+        require(!rented, "House is rented");
+
+        require(_monthlyRent > 0, "_monthlyRent is less than 1");
         require(_durationMonths > 0, "_durationMonths is less than 1");
         require(_depositInMonths >= 0, "_durationMonths is negative");
         monthlyRent = _monthlyRent;
@@ -59,7 +70,9 @@ contract Lease is ILease, Ownable {
     }
 
     function applyToRent(uint256 intendedStartDay) public payable {
+        require(!rented, "House is rented");
         require(msg.sender != owner(), "Caller is the landlord");
+        require(!hasApplied(), "Already applied");
 
         uint256 _starts = getNextTaiwanDay(intendedStartDay);
         require(block.timestamp < _starts, "Lease start time has passed");
@@ -84,6 +97,8 @@ contract Lease is ILease, Ownable {
 
         require(success, "USDC transfer failed");
 
+        _applicants.push(msg.sender);
+
         Application storage application = _applications[msg.sender];
         application.starts = _starts;
         application.monthlyRent = monthlyRent;
@@ -101,17 +116,159 @@ contract Lease is ILease, Ownable {
     }
 
     function approveTenant(address tenant) public onlyOwner {
+        require(!rented, "House is rented");
+        rented = true;
+
         Application memory application = _applications[tenant];
-        monthlyRent = application.monthlyRent;
-        durationMonths = application.durationMonths;
-        depositInMonths = application.depositInMonths;
 
-        uint256 expires = application.starts +
-            application.durationMonths *
-            30 days;
-        _userInfo.user = tenant;
-        _userInfo.expires = uint64(expires);
+        _agreement = Agreement({
+            tenant: tenant,
+            starts: application.starts,
+            expires: application.starts + application.durationMonths * 30 days,
+            monthlyRent: application.monthlyRent,
+            durationMonths: application.durationMonths,
+            depositInMonths: application.depositInMonths,
+            rentPaid: 0,
+            remainingDeposit: application.monthlyRent *
+                application.depositInMonths
+        });
 
-        // refund
+        for (uint256 i = 0; i < _applicants.length; i++) {
+            address applicant = _applicants[i];
+            if (applicant != tenant) {
+                refund(applicant);
+                delete _applications[applicant];
+            }
+        }
+
+        delete _applicants;
+    }
+
+    function refund(address applicant) internal {
+        uint256 depositAmount;
+        if (msg.sender == owner() && rented) {
+            require(applicant == _agreement.tenant, "Refund not to tenant");
+            depositAmount = _agreement.remainingDeposit;
+        } else {
+            depositAmount =
+                _applications[applicant].monthlyRent *
+                _applications[applicant].depositInMonths;
+        }
+        require(depositAmount > 0, "No deposit");
+        bool success = USDC.transfer(applicant, depositAmount);
+        require(success, "USDC transfer failed");
+    }
+
+    function withdrawApplication() public {
+        require(hasApplied(), "Not applied yet");
+        refund(msg.sender);
+    }
+
+    function hasApplied() internal view returns (bool) {
+        bool result = false;
+        for (uint256 i = 0; i < _applicants.length; i++) {
+            if (msg.sender == _applicants[i]) {
+                result = true;
+            }
+        }
+        return result;
+    }
+
+    function payRent(uint256 amount) public {
+        require(rented, "House not rented");
+        require(
+            msg.sender == _agreement.tenant,
+            "Caller is not the designated tenant"
+        );
+
+        uint256 totalRent = _agreement.monthlyRent * _agreement.durationMonths;
+
+        require(
+            amount <= (totalRent - _agreement.rentPaid),
+            "Amount exceeds total rent due"
+        );
+
+        bool success = USDC.transferFrom(msg.sender, owner(), amount);
+        require(success, "USDC transfer failed");
+
+        _agreement.rentPaid += amount;
+    }
+
+    function checkDebt() public view returns (uint256 debt) {
+        if (
+            rented && (msg.sender == owner() || msg.sender == _agreement.tenant)
+        ) {
+            uint256 rentDue;
+
+            if (block.timestamp < _agreement.starts) {
+                rentDue = 0;
+            } else if (block.timestamp >= _agreement.expires) {
+                rentDue = _agreement.monthlyRent * _agreement.durationMonths;
+            } else {
+                rentDue =
+                    ((block.timestamp - _agreement.starts) / 30 days + 1) *
+                    _agreement.monthlyRent;
+            }
+            return
+                _debtRecords[_agreement.tenant] +
+                (rentDue - _agreement.rentPaid);
+        } else {
+            return _debtRecords[msg.sender];
+        }
+    }
+
+    function canReclaim() public view returns (bool) {
+        require(rented, "House not rented");
+        uint256 debt = checkDebt();
+
+        return (block.timestamp > _agreement.expires ||
+            debt > _agreement.remainingDeposit);
+    }
+
+    function reclaimHouse() public onlyOwner {
+        require(canReclaim(), "Cannot reclaim");
+
+        uint256 debt = checkDebt();
+
+        if (debt <= _agreement.remainingDeposit) {
+            USDC.transfer(owner(), debt);
+            _agreement.remainingDeposit -= debt;
+            _agreement.rentPaid += debt;
+            if (_agreement.remainingDeposit > 0) {
+                refund(_agreement.tenant);
+            }
+        } else {
+            // TODO: punishment
+            USDC.transfer(owner(), _agreement.remainingDeposit);
+            _agreement.rentPaid += _agreement.remainingDeposit;
+            _agreement.remainingDeposit = 0;
+            _debtRecords[_agreement.tenant] =
+                debt -
+                _agreement.remainingDeposit;
+        }
+
+        rented = false;
+        _agreement = Agreement({
+            tenant: address(0),
+            starts: 0,
+            expires: 0,
+            monthlyRent: 0,
+            durationMonths: 0,
+            depositInMonths: 0,
+            rentPaid: 0,
+            remainingDeposit: 0
+        });
+    }
+
+    function getUserInfo() external view returns (ERC4907.UserInfo memory) {
+        ERC4907.UserInfo memory userInfo;
+        if (!rented || block.timestamp > _agreement.expires) {
+            userInfo.user = address(0);
+            userInfo.expires = 0;
+        } else {
+            userInfo.user = _agreement.tenant;
+            userInfo.expires = uint64(_agreement.expires);
+        }
+        return userInfo;
     }
 }

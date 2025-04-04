@@ -17,14 +17,14 @@ interface ILease {
     /// @notice Approve tenant and refund others
     function approveTenant(address tenant) external;
 
-    /// @notice Reject applicant and refund deposit
-    function rejectApplicant(address applicant) external;
-
     /// @notice Withdraw application deposit (for applicants)
     function withdrawApplication() external;
 
     /// @notice Pay rent to the landlord directly
-    function payRent() external;
+    function payRent(uint256 amount) external;
+
+    /// @notice Calculate the total debt of the tenant for the lease
+    function checkDebt() external view returns (uint256);
 
     /// @notice Check if property can be reclaimed
     function canReclaim() external view returns (bool);

@@ -10,7 +10,7 @@ contract LeaseNotary is ERC4907 {
         IL2Registry(0x257Ed5B68C2A32273Db8490e744028a63aCC771F);
 
     mapping(uint256 => string) private _houseAddrs;
-    uint256 private _tokenIdCounter = 0;
+    uint256 public tokenIdCounter = 0;
 
     constructor() ERC4907("HouseNFT", "HSN") {}
 
@@ -18,7 +18,7 @@ contract LeaseNotary is ERC4907 {
     /// @param houseAddr The address of the house to associate with the NFT
     /// @return The ID of the newly minted NFT
     function mint(string memory houseAddr) public returns (uint256) {
-        uint256 tokenId = ++_tokenIdCounter;
+        uint256 tokenId = ++tokenIdCounter;
         _safeMint(msg.sender, tokenId);
         updateHouse(tokenId, houseAddr);
         return tokenId;
@@ -46,6 +46,14 @@ contract LeaseNotary is ERC4907 {
             "ERC721Metadata: House query for nonexistent token"
         );
         return _houseAddrs[tokenId];
+    }
+
+    function canUse(uint256 tokenId) public returns (bool) {
+        address user = ERC4907.userOf(tokenId);
+        if (user == address(0)) {
+            syncUser(tokenId);
+        }
+        return (msg.sender == ERC4907.userOf(tokenId));
     }
 
     /// @notice Sync the user information with the NFT's lease contract
