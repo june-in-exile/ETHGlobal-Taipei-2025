@@ -8,7 +8,7 @@ import "./LeaseNotary.sol";
 import "./ERC4907.sol";
 
 contract Lease is ILease, Ownable {
-    struct LeaseInfo {
+    struct Application {
         uint256 starts; // unix timestamp, lease starts
         uint256 monthlyRent; // amount of USDC tenant should pay monthly
         uint256 durationMonths; // amount of months the lease should be valid
@@ -24,11 +24,11 @@ contract Lease is ILease, Ownable {
     uint256 public durationMonths;
     uint256 public depositInMonths;
 
-    ERC4907.UserInfo private _info;
+    ERC4907.UserInfo private _userInfo;
     uint256 private _remainingDeposit;
     uint256 private _rentPaid;
 
-    mapping(address => LeaseInfo) _leases;
+    mapping(address => Application) _applications;
 
     constructor(
         address _usdc,
@@ -37,8 +37,8 @@ contract Lease is ILease, Ownable {
     ) Ownable(msg.sender) {
         leaseNotary = _leaseNotary;
         tokenId = _tokenId;
-        _info.user = address(0);
-        _info.expires = 0;
+        _userInfo.user = address(0);
+        _userInfo.expires = 0;
 
         LeaseNotary notary = LeaseNotary(_leaseNotary);
         USDC = IERC20(_usdc);
@@ -83,6 +83,12 @@ contract Lease is ILease, Ownable {
         );
 
         require(success, "USDC transfer failed");
+
+        Application storage application = _applications[msg.sender];
+        application.starts = _starts;
+        application.monthlyRent = monthlyRent;
+        application.durationMonths = durationMonths;
+        application.depositInMonths = depositInMonths;
     }
 
     function getNextTaiwanDay(
@@ -92,5 +98,20 @@ contract Lease is ILease, Ownable {
         timestamp = timestamp - (timestamp % 1 days) + 1 days;
         timestamp -= 8 hours;
         return timestamp;
+    }
+
+    function approveTenant(address tenant) public onlyOwner {
+        Application memory application = _applications[tenant];
+        monthlyRent = application.monthlyRent;
+        durationMonths = application.durationMonths;
+        depositInMonths = application.depositInMonths;
+
+        uint256 expires = application.starts +
+            application.durationMonths *
+            30 days;
+        _userInfo.user = tenant;
+        _userInfo.expires = uint64(expires);
+
+        // refund
     }
 }
