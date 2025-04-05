@@ -2,12 +2,13 @@
 pragma solidity ^0.8.12;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../interfaces/ILease.sol";
-import "./LeaseNotary.sol";
+import "./L2LeaseNotary.sol";
 import "./ERC4907.sol";
 
-contract Lease is ILease, Ownable {
+contract Lease is ILease, ERC721Holder, Ownable {
     struct Application {
         uint256 starts; // unix timestamp, lease starts
         uint256 monthlyRent; // amount of USDC tenant should pay monthly
@@ -27,7 +28,7 @@ contract Lease is ILease, Ownable {
     }
 
     IERC20 public immutable USDC;
-    LeaseNotary public immutable leaseNotary;
+    L2LeaseNotary public immutable l2leaseNotary;
     uint256 public immutable tokenId;
     string public houseAddr;
 
@@ -71,11 +72,10 @@ contract Lease is ILease, Ownable {
         _;
     }
 
-    constructor(address _leaseNotary, uint256 _tokenId) Ownable(msg.sender) {
-        leaseNotary = LeaseNotary(_leaseNotary);
-        tokenId = _tokenId;
-        USDC = IERC20(leaseNotary.USDC());
-        houseAddr = leaseNotary.house(_tokenId);
+    constructor(address _l2leaseNotary, uint256 _tokenId) Ownable(msg.sender) {
+        l2leaseNotary = L2LeaseNotary(_l2leaseNotary);
+        USDC = IERC20(l2leaseNotary.USDC());
+        houseAddr = l2leaseNotary.house(_tokenId);
     }
 
     function setRentalTerms(
@@ -371,5 +371,14 @@ contract Lease is ILease, Ownable {
         returns (Agreement memory)
     {
         return _agreement;
+    }
+
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes memory
+    ) public virtual override returns (bytes4) {
+        return this.onERC721Received.selector;
     }
 }

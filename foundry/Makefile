@@ -1,5 +1,6 @@
 include .env
 
+MY_WALLET := $(TENANT_A)
 MY_PRIVATE_KEY := $(TENANT_A_PRIVATE_KEY)
 
 # -----------------------skip this section--------------------------
@@ -15,7 +16,7 @@ MY_PRIVATE_KEY := $(TENANT_A_PRIVATE_KEY)
 #     	--private-key $(ANVIL_ALICE_PRIVATE_KEY) \
 #     	script/Lease.s.sol:LeaseScript
 
-# deploy_leaseNotary_to_arb_sepolia:
+# deploy_lease_to_arb_sepolia:
 # 	@forge build
 # 	@forge script \
 # 		--broadcast \
@@ -23,7 +24,7 @@ MY_PRIVATE_KEY := $(TENANT_A_PRIVATE_KEY)
 # 		--rpc-url $(ARB_SEPOLIA_RPC_URL) \
 # 		--etherscan-api-key $(ARBSCAN_API_KEY) \
 # 		--private-key $(MY_PRIVATE_KEY) \
-# 		script/LeaseNotary.s.sol:LeaseNotaryScript
+# 		script/Lease.s.sol:LeaseScript
 
 # set_expiration:
 # 	cast rpc evm_setNextBlockTimestamp 1759248000
@@ -48,6 +49,11 @@ deploy_l2leaseNotary_to_arb_sepolia:
 		script/L2LeaseNotary.s.sol:L2LeaseNotaryScript
 
 # update L2LEASE_NOTARY_ADDRESS in .env
+
+addRegistrar:
+	cast send --from $(MY_WALLET) --private-key $(MY_PRIVATE_KEY) $(L2REGISTRY_ADDRESS) --rpc-url $(ARB_SEPOLIA_RPC_URL) \
+		"addRegistrar(address)" \
+		$(L2LEASE_NOTARY_ADDRESS)
 
 update_constructor_args:
 	@echo $(L2LEASE_NOTARY_ADDRESS) 1 > constructor-args.txt

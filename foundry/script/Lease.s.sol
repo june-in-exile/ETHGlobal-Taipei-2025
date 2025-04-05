@@ -10,12 +10,12 @@ contract LeaseScript is Script {
     function setUp() public {}
 
     function run() public {
-        address _leaseNotary = vm.envAddress("LEASE_NOTARY_ADDRESS");
+        address _l2leaseNotary = vm.envAddress("L2LEASE_NOTARY_ADDRESS");
         uint256 tokenId = 1;
 
         vm.startBroadcast();
 
-        lease = new Lease(_leaseNotary, tokenId);
+        lease = new Lease(_l2leaseNotary, tokenId);
 
         vm.stopBroadcast();
     }
