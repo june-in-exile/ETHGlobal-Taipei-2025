@@ -30,7 +30,8 @@ Additionally, each time an NFT is minted, a corresponding Lease contract is also
 
 ### Frontend
 
-...
+![flowchart](resources/flow.png)
+
 
 ### Foundry
 
