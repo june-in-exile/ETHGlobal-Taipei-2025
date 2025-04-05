@@ -36,6 +36,11 @@ contract Lease is ILease, Ownable {
     uint256 public durationMonths;
     uint256 public depositInMonths;
 
+    /// @dev adjustment for demo purpose
+    uint256 private _month =
+        // = 30 days;
+        1 seconds;
+
     Agreement private _agreement;
     address[] private _applicants;
     mapping(address => Application) private _applications;
@@ -61,6 +66,41 @@ contract Lease is ILease, Ownable {
         monthlyRent = _monthlyRent;
         durationMonths = _durationMonths;
         depositInMonths = _depositInMonths;
+    }
+
+    /// @dev adjustment for demo purpose
+    function applyToRent() public {
+        require(!rented, "House is rented");
+        require(msg.sender != owner(), "Caller is the landlord");
+        require(!_hasApplied(), "Already applied");
+
+        uint256 depositAmount = monthlyRent * depositInMonths;
+
+        require(
+            USDC.balanceOf(msg.sender) >= depositAmount,
+            "Insufficient USDC balance"
+        );
+
+        require(
+            USDC.allowance(msg.sender, address(this)) >= depositAmount,
+            "Insufficient USDC allowance"
+        );
+
+        bool success = USDC.transferFrom(
+            msg.sender,
+            address(this),
+            depositAmount
+        );
+
+        require(success, "USDC transfer failed");
+
+        _applicants.push(msg.sender);
+
+        Application storage application = _applications[msg.sender];
+        application.starts = block.timestamp;
+        application.monthlyRent = monthlyRent;
+        application.durationMonths = durationMonths;
+        application.depositInMonths = depositInMonths;
     }
 
     function applyToRent(uint256 intendedStartDay) public {
@@ -102,9 +142,9 @@ contract Lease is ILease, Ownable {
 
     function _getNextTaiwanDay(
         uint256 timestamp
-    ) internal pure returns (uint256) {
+    ) internal view returns (uint256) {
         timestamp += 8 hours;
-        timestamp = timestamp - (timestamp % 1 days) + 1 days;
+        timestamp = timestamp - (timestamp % _month) + 1 days;
         timestamp -= 8 hours;
         return timestamp;
     }
@@ -117,7 +157,7 @@ contract Lease is ILease, Ownable {
         _agreement = Agreement({
             tenant: tenant,
             starts: application.starts,
-            expires: application.starts + application.durationMonths * 30 days,
+            expires: application.starts + application.durationMonths * _month,
             monthlyRent: application.monthlyRent,
             durationMonths: application.durationMonths,
             depositInMonths: application.depositInMonths,
@@ -214,7 +254,7 @@ contract Lease is ILease, Ownable {
                 rentDue = _agreement.monthlyRent * _agreement.durationMonths;
             } else {
                 rentDue =
-                    ((block.timestamp - _agreement.starts) / 30 days + 1) *
+                    ((block.timestamp - _agreement.starts) / 1 minutes + 1) *
                     _agreement.monthlyRent;
             }
             return
@@ -280,7 +320,11 @@ contract Lease is ILease, Ownable {
         return userInfo;
     }
 
-    function checkAgreement() external view onlyOwner returns (Agreement memory) {
+    function checkAgreement() external view returns (Agreement memory) {
+        require(
+            msg.sender == owner() || msg.sender == _agreement.tenant,
+            "Not allowed to check"
+        );
         return _agreement;
     }
 }
