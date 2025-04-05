@@ -4,12 +4,13 @@ import { chainId2Name, useWeb3 } from '@/utils/web3Context';
 import L2LeaseNotaryABI from '../abi/L2LeaseNotary';
 import LeaseABI from '../abi/Lease';
 const PropertyDetails = ({ property, onClose }) => {
-  if (!property) return null;
+  
+  const { web3, account, isConnected, chainId, connectWallet } = useWeb3();
+
   const [activeTab, setActiveTab] = useState('details');
   const [startDate, setStartDate] = useState('');
   const [intendedStartDate, setIntendedStartDate] = useState(null);
   
-  const { web3, account, isConnected, chainId, connectWallet } = useWeb3();
   const [leaseAddress, setLeaseAddress] = useState(null);
   const [chainName, setChainName] = useState(null);
   
@@ -37,6 +38,9 @@ const PropertyDetails = ({ property, onClose }) => {
 
     if (property.tokenId) loadLease();
   }, [property.tokenId]);
+
+  if (!property) return null;
+
   const handleApply = async () => {
     if (!isConnected) {
       await connectWallet();

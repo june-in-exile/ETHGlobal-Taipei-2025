@@ -9,8 +9,10 @@ import houses from '../data/houses';
 import Image from 'next/image';
 
 const ManageProperties = () => {
-  const router = useRouter();
+
   const { web3, account, isConnected, chainId, connectWallet } = useWeb3();
+
+  const router = useRouter();
   const [myProperties, setMyProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -257,7 +259,7 @@ const ManageProperties = () => {
               </svg>
             </div>
             <h3 className="text-lg font-medium text-gray-900">No properties found</h3>
-            <p className="mt-2 text-gray-500">You don't have any properties listed yet. Post your first property to get started.</p>
+            <p className="mt-2 text-gray-500">You don&apos;t have any properties listed yet. Post your first property to get started.</p>
             <div className="mt-6">
               <button
                 onClick={handlePostNewProperty}

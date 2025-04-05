@@ -210,7 +210,7 @@ const MyRent = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
                 <h3 className="text-lg font-medium text-gray-900">No Applications Found</h3>
-                <p className="mt-2 text-gray-600">You haven't applied to rent any properties yet.</p>
+                <p className="mt-2 text-gray-600">You haven&apos;t applied to rent any properties yet.</p>
                 <button 
                   onClick={() => router.push('/MapView')}
                   className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
