@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Header from '../components/Header';
 import Head from 'next/head';
+import { useWeb3 } from '@/utils/web3Context';
+import L2LeaseNotaryABI from '../abi/L2LeaseNotary';
+import Web3 from 'web3';
+// Simple mint functionality for hackathon demo
 
 const PostProperty = () => {
   const router = useRouter();
@@ -20,6 +24,12 @@ const PostProperty = () => {
   });
   
   const [showSuccess, setShowSuccess] = useState(false);
+  const [mintLoading, setMintLoading] = useState(false);
+  const [mintError, setMintError] = useState('');
+  const [mintResult, setMintResult] = useState(null);
+  
+  // Get web3 context
+  const { web3, account, isConnected, chainId, connectWallet } = useWeb3();
 
   const amenityOptions = [
     'Wifi', 'Kitchen', 'Washer', 'Dryer', 'Air conditioning', 'Heating',
@@ -47,6 +57,85 @@ const PostProperty = () => {
         ...formData,
         amenities: [...formData.amenities, amenity]
       });
+    }
+  };
+  const getLeaseContract = async (address) => {
+      if (!isConnected || !web3) return null;
+    
+      const contract = new web3.eth.Contract(L2LeaseNotaryABI, process.env.NEXT_PUBLIC_L2LEASE_NOTARY_ADDRESS);
+    
+      return new Promise((resolve, reject) => {
+        let found = false;
+        const subscription = contract.events.HouseMinted({
+          fromBlock: 0
+        })
+        subscription.on('data', async (event) => {
+          const { houseAddr, tokenId } = event.returnValues;
+          if (houseAddr.toLowerCase() === address.toLowerCase()) {
+            found = true;
+            try {
+              const lease = await contract.methods.leases(tokenId).call();
+              resolve(lease);
+            } catch (error) {
+              console.error('Error calling leases:', error);
+              resolve(null);
+            }
+            subscription.unsubscribe(); // 停止監聽
+          }
+        })
+    
+        // 若 3 秒後仍未找到對應事件，則停止監聽並回傳 null
+        setTimeout(() => {
+          if (!found) {
+            subscription.unsubscribe();
+            resolve(null);
+          }
+        }, 3000);
+      });
+    };
+  
+  
+  // Handle NFT minting - simplified for hackathon demo
+  const handleMintNFT = async (address) => {
+    if (!isConnected) {
+      await connectWallet();
+      return;
+    }
+    
+    if (!address.trim()) {
+      setMintError('Please enter a valid property address');
+      return;
+    }
+    
+    setMintLoading(true);
+    setMintError('');
+    
+    try {
+      // Check if NFT already exists for this address
+      const leaseAddress = await getLeaseContract(address);
+      if (leaseAddress) {
+        setMintResult({
+          leaseAddress: leaseAddress
+        });
+        setMintLoading(false);
+        return;
+      } else {
+        const web3 = new Web3(window.ethereum);
+        const contract = new web3.eth.Contract(L2LeaseNotaryABI, process.env.NEXT_PUBLIC_L2LEASE_NOTARY_ADDRESS);  
+        const result = await contract.methods.mint(address).send({ from: account });
+        const leaseAddress = await getLeaseContract(address);
+        
+        // Set mint result to show success message with lease address
+        setMintResult({
+          transactionHash: result.transactionHash,
+          leaseAddress: leaseAddress
+        });
+      }
+      setMintLoading(false);
+    } catch (error) {
+      console.error('Error minting property NFT:', error);
+      setMintError(error.message || 'Error minting property NFT');
+      setMintLoading(false);
     }
   };
 
@@ -120,6 +209,105 @@ const PostProperty = () => {
               </div>
               
               <div className="sm:col-span-6">
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                  Address
+                </label>
+                <div className="flex">
+                  <input
+                    type="text"
+                    name="location"
+                    id="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    placeholder="e.g., 123 Main St, San Francisco, CA"
+                    className="mt-1 block flex-1 border border-gray-300 rounded-l-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleMintNFT(formData.location)}
+                    disabled={!formData.location || mintLoading || !isConnected}
+                    className="mt-1 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-r-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {mintLoading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Minting...
+                      </>
+                    ) : "Mint NFT"}
+                  </button>
+                </div>
+                {mintError && (
+                  <p className="mt-2 text-sm text-red-600">{mintError}</p>
+                )}
+                {mintResult && (
+                  <div className="mt-3 p-3 border rounded-md bg-green-50 border-green-200">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-green-800">
+                          {mintResult.transactionHash ? "Property NFT minted successfully!" : "Property NFT already exists!"}
+                        </h3>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-2 pl-8">
+                      {mintResult.transactionHash && (
+                        <div className="flex items-center text-sm text-green-700 mb-2">
+                          <span>Transaction: </span>
+                          <a 
+                            href={`https://${chainId === '0x1' ? '' : 'sepolia.'}arbiscan.io/tx/${mintResult.transactionHash}`}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="ml-1 underline hover:text-green-900"
+                          >
+                            View on explorer
+                          </a>
+                        </div>
+                      )}
+                      
+                      {mintResult.leaseAddress && (
+                        <div className="text-sm text-green-700">
+                          <div className="flex items-center">
+                            <span className="font-medium">Lease Contract:</span>
+                            <div className="ml-1 flex items-center">
+                              <a
+                                href={`https://${chainId === '0x1' ? '' : 'sepolia.'}arbiscan.io/address/${mintResult.leaseAddress}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-green-900"
+                                title={mintResult.leaseAddress}
+                              >
+                                {mintResult.leaseAddress.substring(0, 6)}...{mintResult.leaseAddress.substring(mintResult.leaseAddress.length - 4)}
+                              </a>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(mintResult.leaseAddress);
+                                }}
+                                className="ml-2 text-green-600 hover:text-green-800 active:text-green-300"
+                                title="Copy to clipboard"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="sm:col-span-6">
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700">
                   Property Title
                 </label>
@@ -130,22 +318,6 @@ const PostProperty = () => {
                   value={formData.title}
                   onChange={handleInputChange}
                   placeholder="e.g., Modern Apartment in Downtown"
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  required
-                />
-              </div>
-              
-              <div className="sm:col-span-6">
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700">
-                  Address
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  id="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  placeholder="e.g., 123 Main St, San Francisco, CA"
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   required
                 />

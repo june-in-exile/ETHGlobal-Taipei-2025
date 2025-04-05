@@ -30,21 +30,32 @@ const MapViewHouses = () => {
   const handleListingLeave = () => {
     setActiveHouse(null);
   };
+  
+  const handleCardClick = (house) => {
+    // When a card is clicked, set active house and fly to its position
+    setActiveHouse(house.id);
+    
+    if (mapRef.current) {
+      mapRef.current.flyTo(house.position, 13, {
+        duration: 0.8,
+        easeLinearity: 0.5
+      });
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="flex flex-col h-screen bg-white">
       <Header />
       <FiltersBar />
-
-      <div className="flex h-[calc(100vh-8.25rem)]">
+      <div className="flex flex-1 pb-4 overflow-hidden"> 
         {/* Listings section */}
         <ListingsSection 
           houses={houses} 
           activeHouse={activeHouse} 
           handleListingHover={handleListingHover} 
-          handleListingLeave={handleListingLeave} 
+          handleListingLeave={handleListingLeave}
+          handleCardClick={handleCardClick}
         />
-
         {/* Map section */}
         <div className="w-3/5 relative">
           <MapControls />

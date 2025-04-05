@@ -17,7 +17,7 @@ const createPriceIcon = (price, isActive) => {
       $${price.toLocaleString()}<span class="text-xs ${isActive ? 'text-blue-100' : 'text-gray-400'}">/mo</span>
       </div>`,
     iconSize: [width, 32],
-    iconAnchor: [width/2, 16]
+    iconAnchor: [width / 2, 16]
   });
 };
 
@@ -105,23 +105,8 @@ const PropertyPopup = ({ house }) => (
 const Map = ({ houses, activeHouse, setActiveHouse, mapRef }) => {
   const [center] = useState(houses[0].position);
 
-  useEffect(() => {
-    if (activeHouse && mapRef.current) {
-      const house = houses.find(h => h.id === activeHouse);
-      if (house) {
-        mapRef.current.flyTo(house.position, 13, {
-          duration: 0.8,
-          easeLinearity: 0.5
-        });
-      }
-    } else if (mapRef.current && !activeHouse) {
-      // If no house is active, zoom out to see all properties
-      mapRef.current.flyTo(center, 10, {
-        duration: 1,
-        easeLinearity: 0.5
-      });
-    }
-  }, [activeHouse, houses, mapRef, center]);
+  // We'll keep this empty as we don't want any automatic flyTo behavior
+  // This will be triggered only when clicking cards in ListingCard.js
 
   return (
     <MapContainer 
@@ -143,6 +128,20 @@ const Map = ({ houses, activeHouse, setActiveHouse, mapRef }) => {
           eventHandlers={{
             mouseover: () => setActiveHouse(house.id),
             mouseout: () => setActiveHouse(null),
+            click: () => {
+              setActiveHouse(house.id);
+              if (mapRef.current) {
+                mapRef.current.flyTo(house.position, 13, {
+                  duration: 0.8,
+                  easeLinearity: 0.5
+                });
+              }
+              // Scroll to the matching card
+              const listingElement = document.getElementById(`listing-${house.id}`);
+              if (listingElement) {
+                listingElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }
           }}
         >
           <Popup>

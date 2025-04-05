@@ -15,7 +15,8 @@
     "react": "^19.0.0-rc.1",
     "react-dom": "^19.0.0-rc.1",
     "react-leaflet": "^5.0.0-rc.2",
-    "react-map-gl": "^8.0.2"
+    "react-map-gl": "^8.0.2",
+    "web3": "^4.16.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

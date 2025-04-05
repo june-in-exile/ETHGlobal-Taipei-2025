@@ -1,6 +1,6 @@
 import ListingCard from './ListingCard';
 
-const ListingsSection = ({ houses, activeHouse, handleListingHover, handleListingLeave }) => {
+const ListingsSection = ({ houses, activeHouse, handleListingHover, handleListingLeave, handleCardClick }) => {
   return (
     <div className="w-2/5 overflow-y-auto bg-gray-50 p-6 border-r border-gray-200">
       <div className="pb-6 flex justify-between items-center">
@@ -40,6 +40,7 @@ const ListingsSection = ({ houses, activeHouse, handleListingHover, handleListin
             isActive={activeHouse === house.id}
             onMouseEnter={handleListingHover}
             onMouseLeave={handleListingLeave}
+            onCardClick={handleCardClick}
           />
         ))}
       </div>

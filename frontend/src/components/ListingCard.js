@@ -1,11 +1,13 @@
 import Image from 'next/image';
 
-const ListingCard = ({ house, isActive, onMouseEnter, onMouseLeave }) => {
+const ListingCard = ({ house, isActive, onMouseEnter, onMouseLeave, onCardClick }) => {
   return (
     <div 
+      id={`listing-${house.id}`}
       className={`cursor-pointer rounded-md transition-all duration-200 overflow-hidden shadow-sm ${isActive ? 'ring-1 ring-blue-500 shadow-md' : 'hover:shadow-md bg-white'}`}
       onMouseEnter={() => onMouseEnter(house.id)}
       onMouseLeave={onMouseLeave}
+      onClick={() => onCardClick && onCardClick(house)}
     >
       <div className="relative h-48 w-full overflow-hidden">
         <Image 
