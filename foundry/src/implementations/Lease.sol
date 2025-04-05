@@ -46,6 +46,14 @@ contract Lease is ILease, Ownable {
     mapping(address => Application) private _applications;
     mapping(address => uint256) private _debtRecords;
 
+    modifier onlyLandlordOrTenant() {
+        require(
+            msg.sender == owner() || msg.sender == _agreement.tenant,
+            "Not landlord nor tenant"
+        );
+        _;
+    }
+
     constructor(address _leaseNotary, uint256 _tokenId) Ownable(msg.sender) {
         leaseNotary = LeaseNotary(_leaseNotary);
         tokenId = _tokenId;
@@ -265,7 +273,7 @@ contract Lease is ILease, Ownable {
         }
     }
 
-    function canReclaim() public view returns (bool) {
+    function canReclaim() public view onlyLandlordOrTenant returns (bool) {
         require(rented, "House not rented");
         uint256 debt = checkDebt();
 
@@ -320,11 +328,7 @@ contract Lease is ILease, Ownable {
         return userInfo;
     }
 
-    function checkAgreement() external view returns (Agreement memory) {
-        require(
-            msg.sender == owner() || msg.sender == _agreement.tenant,
-            "Not allowed to check"
-        );
+    function checkAgreement() external view onlyLandlordOrTenant returns (Agreement memory) {
         return _agreement;
     }
 }

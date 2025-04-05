@@ -7,10 +7,9 @@ import "./L2Registrar.sol";
 import "./Lease.sol";
 import "./ERC4907.sol";
 
-contract LeaseNotary is ERC4907 {
+contract L2LeaseNotary is ERC4907, L2Registrar {
     IERC20 public immutable USDC;
     IL2Registry public immutable l2Registry;
-    L2Registrar public immutable l2Registrar;
 
     mapping(uint256 => string) private _houseAddrs;
     mapping(uint256 => address) public leases;
@@ -18,22 +17,17 @@ contract LeaseNotary is ERC4907 {
 
     constructor(
         address _usdc,
-        address _l2Registry,
-        address _l2Registrar
-    ) ERC4907("HouseNFT", "HSN") {
+        address _l2Registry
+    ) ERC4907("HouseNFT", "HSN") L2Registrar(_l2Registry) {
         USDC = IERC20(_usdc);
         l2Registry = IL2Registry(_l2Registry);
-        l2Registrar = L2Registrar(_l2Registrar);
     }
 
     /// @notice Mint a new NFT with a house address
     /// @param houseAddr The address of the house to associate with the NFT
     /// @return The ID of the newly minted NFT
     function mint(string memory houseAddr) public returns (uint256) {
-        require(
-            l2Registrar.available(houseAddr),
-            "house address already registered"
-        );
+        require(this.available(houseAddr), "house address already registered");
 
         uint256 tokenId = ++tokenIdCounter;
         _safeMint(msg.sender, tokenId);
@@ -42,8 +36,7 @@ contract LeaseNotary is ERC4907 {
         Lease lease = new Lease(address(this), tokenId);
         lease.transferOwnership(msg.sender);
         leases[tokenId] = address(lease);
-
-        // l2Registrar.register(houseAddr, address(lease));
+        // this.register(houseAddr, address(lease));
 
         return tokenId;
     }
@@ -72,12 +65,13 @@ contract LeaseNotary is ERC4907 {
         return _houseAddrs[tokenId];
     }
 
-    function canUse(uint256 tokenId) public returns (bool) {
-        address user = this.userOf(tokenId);
+    function canUse(string memory houseAddr) public returns (bool) {
+        Lease lease = findLease(houseAddr);
+        address user = this.userOf(lease.tokenId());
         if (user == address(0)) {
-            syncUser(tokenId);
+            syncUser(lease.tokenId());
         }
-        return (msg.sender == this.userOf(tokenId));
+        return (msg.sender == this.userOf(lease.tokenId()));
     }
 
     /// @notice Sync the user information with the NFT's lease contract
