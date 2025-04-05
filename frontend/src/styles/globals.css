@@ -24,3 +24,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Custom map styles */
+.leaflet-container {
+  z-index: 0 !important;
+}
+
+.leaflet-marker-icon, 
+.leaflet-marker-shadow {
+  z-index: 1 !important;
+}
+
+.price-marker {
+  z-index: 10 !important;
+}

@@ -80,11 +80,10 @@ const PostProperty = () => {
               console.error('Error calling leases:', error);
               resolve(null);
             }
-            subscription.unsubscribe(); // 停止監聽
+            subscription.unsubscribe();
           }
         })
     
-        // 若 3 秒後仍未找到對應事件，則停止監聽並回傳 null
         setTimeout(() => {
           if (!found) {
             subscription.unsubscribe();
@@ -325,20 +324,17 @@ const PostProperty = () => {
               
               <div className="sm:col-span-2">
                 <label htmlFor="price" className="block text-sm font-medium text-gray-700">
-                  Monthly Rent ($)
+                  Monthly Rent (USDC)
                 </label>
                 <div className="mt-1 relative rounded-md shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">$</span>
-                  </div>
                   <input
                     type="number"
                     name="price"
                     id="price"
                     value={formData.price}
                     onChange={handleInputChange}
-                    placeholder="2000"
-                    className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-7 sm:text-sm border border-gray-300 rounded-md py-2 px-3"
+                    placeholder="e.g. 2000"
+                    className="focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border border-gray-300 rounded-md py-2 px-3"
                     required
                   />
                 </div>
@@ -543,7 +539,7 @@ const PostProperty = () => {
                           {formData.sqft ? `${formData.sqft} sq ft` : 'Square Footage'}
                         </span>
                         <span className="inline-block text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-md font-bold">
-                          ${formData.price || '0'}/mo
+                          {formData.price || '0'} USDC/mo
                         </span>
                       </div>
                     </div>

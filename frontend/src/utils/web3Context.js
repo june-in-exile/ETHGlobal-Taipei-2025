@@ -4,6 +4,7 @@ import Web3 from 'web3';
 // Create Context
 const Web3Context = createContext();
 
+
 // Provider Component
 export const Web3Provider = ({ children }) => {
   const [web3, setWeb3] = useState(null);
@@ -176,3 +177,57 @@ export const useWeb3 = () => {
 };
 
 export default Web3Context;
+
+
+
+export const chainId2Name = {
+  // Ethereum networks
+  1: 'Ethereum Mainnet',
+  3: 'Ropsten Testnet (deprecated)',
+  4: 'Rinkeby Testnet (deprecated)',
+  5: 'Goerli Testnet',
+  42: 'Kovan Testnet (deprecated)',
+  11155111: 'Sepolia Testnet',
+
+  // Layer 2 networks
+  10: 'Optimism',
+  42161: 'Arbitrum One',
+  42170: 'Arbitrum Nova',
+  421614: 'Arbitrum Sepolia', // 新增的 Arbitrum Sepolia 測試網
+  421613: 'Arbitrum Goerli',
+  59144: 'Linea Mainnet',
+  59140: 'Linea Goerli',
+  534352: 'Scroll Mainnet',
+  534353: 'Scroll Sepolia',
+
+  // Polygon networks
+  137: 'Polygon Mainnet',
+  80001: 'Mumbai Testnet',
+
+  // Binance Smart Chain networks
+  56: 'BSC Mainnet',
+  97: 'BSC Testnet',
+
+  // Avalanche networks
+  43114: 'Avalanche C-Chain',
+  43113: 'Avalanche Fuji Testnet',
+
+  // Fantom networks
+  250: 'Fantom Opera',
+  4002: 'Fantom Testnet',
+
+  // Gnosis Chain (xDai)
+  100: 'Gnosis Chain',
+
+  // Celo networks
+  42220: 'Celo Mainnet',
+  44787: 'Celo Alfajores Testnet',
+
+  // Base networks
+  8453: 'Base Mainnet',
+  84531: 'Base Goerli',
+
+  // Other networks
+  1337: 'Localhost (Hardhat)',
+  31337: 'Localhost (Anvil)',
+};

@@ -21,7 +21,7 @@ const ListingCard = ({ house, isActive, onMouseEnter, onMouseLeave, onCardClick 
         
         {/* Price tag */}
         <div className="absolute bottom-3 left-3 bg-blue-600 text-white font-bold px-3 py-1 rounded-md shadow-md">
-          ${house.price} <span className="text-xs font-normal text-blue-100">/month</span>
+          {house.price} USDC <span className="text-xs font-normal text-blue-100">/month</span>
         </div>
         
         {/* Badges */}
@@ -87,7 +87,7 @@ const ListingCard = ({ house, isActive, onMouseEnter, onMouseLeave, onCardClick 
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 mr-1 text-blue-500">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>${house.price}/mo</span>
+            <span>{house.price} USDC/mo</span>
           </div>
         </div>
         
@@ -130,13 +130,27 @@ const ListingCard = ({ house, isActive, onMouseEnter, onMouseLeave, onCardClick 
         </div>
         
         <div className="mt-3 pt-2 border-t border-gray-100">
-          <p className="text-xs text-gray-500 flex items-center">
-            <span className="mr-1.5">Listed by:</span>
-            <span className="text-blue-600 font-medium">Property Manager</span>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 ml-1 text-blue-500">
-              <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
-            </svg>
-          </p>
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-gray-500 flex items-center">
+              <span className="mr-1.5">Listed by:</span>
+              <span className="text-blue-600 font-medium">Property Manager</span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 ml-1 text-blue-500">
+                <path fillRule="evenodd" d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z" clipRule="evenodd" />
+              </svg>
+            </p>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onCardClick && onCardClick(house, 'details');
+              }}
+              className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline flex items-center"
+            >
+              View Details
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
