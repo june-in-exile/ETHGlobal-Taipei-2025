@@ -85,7 +85,7 @@ contract Lease is ILease, ERC721Holder, Ownable {
     ) public onlyOwner {
         require(!rented, "House is rented");
 
-        require(_monthlyRent > 0, "_monthlyRent is less than 1");
+        require(_monthlyRent >= 0, "_monthlyRent is less than 1");
         require(_durationMonths > 0, "_durationMonths is less than 1");
         require(_depositInMonths >= 0, "_durationMonths is negative");
         monthlyRent = _monthlyRent;

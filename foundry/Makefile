@@ -36,6 +36,17 @@ MY_PRIVATE_KEY := $(TENANT_A_PRIVATE_KEY)
 # auto_mine:
 # 	cast rpc evm_setAutomine true
 
+deploy_l2leaseNotary_to_pol_amoy:
+	@forge build
+	@forge script \
+		--broadcast \
+		--verify \
+		--rpc-url $(POL_AMOY_RPC_URL) \
+		--etherscan-api-key $(POLSCAN_API_KEY) \
+		--private-key $(MY_PRIVATE_KEY) \
+		script/L2LeaseNotary.s.sol:L2LeaseNotaryScript
+
+
 # -----------------------skip this section--------------------------
 
 deploy_l2leaseNotary_to_arb_sepolia:
