@@ -1,36 +1,52 @@
 # Lease Notary
 
-## Background
+## Description
 
 In Taiwan, the rental housing market commonly faces the following issues:
 
-Scammers posing as landlords
+1. Scammers posing as landlords
+2. Tenants who default on rent and cannot be evicted
+3. Tenants with bad habits or landlords with bad tempers
 
-Tenants who default on rent and cannot be evicted.
+Many of these problems arise because both tenants and landlords tend to avoid the hassle—or have privacy concerns—when it comes to notarizing rental contracts in court. To address these issues, we are transitioning traditional paper-based rental agreements onto the blockchain. Our goal is to preserve the key characteristics of paper contracts—each lease should belong exclusively to the signing tenant and landlord, and not be accessible by anyone else. At the same time, we want to ensure that the contract remains enforceable if anything goes wrong.
 
-Tenants with bad habits or landlords with bad tempers
+To achieve this, we transform each rental agreement into a smart contract on the blockchain and introduce the role of a "Lease Notary." This notary acts as a neutral party that automatically intervenes to protect one side’s interests if the contract is violated or abused. For example, by combining Real World Asset (RWA) verification policies with transparent on-chain mechanisms, we can prevent scammers from falsely posing as landlords.
 
-To address these problems, we are moving traditional paper-based rental contracts onto the blockchain. First, by combining RWA policies with transparent on-chain mechanisms, we can prevent scammers who falsely claim to be landlords from succeeding.
+For the second problem, since smart contracts are enforced automatically without the need for time-consuming manual reviews, and by integrating NFTs with NFC smart locks, we can prevent defaulting tenants from exploiting legal loopholes to occupy a property unlawfully.
 
-Second, since smart contracts are enforced automatically without lengthy manual review, and by linking NFTs to NFC smart locks, we can prevent tenants who default on rent from exploiting legal loopholes to occupy properties unlawfully.
+To tackle the third issue, we plan to introduce an ERC-20 token that represents user reputation. Through a peer review system and token issuance, tenants who pay rent on time and landlords who maintain their properties well can earn reputation tokens. This incentivizes both parties to act responsibly in order to maintain and protect their reputations.
 
-For the third problem, through the issuance of reputation tokens and peer review mechanisms, tokens can be awarded to tenants who pay rent on time and landlords who maintain their properties well. This incentivizes both parties to act responsibly in order to protect their reputations.
+The system architecture is broadly divided into two parts: the frontend and the on-chain code. The frontend includes interfaces for both tenants and landlords, as well as an interactive map that helps users locate properties. Although this part is not directly related to Web3, we have designed it to be as smooth and intuitive as possible to lower the entry barrier for users new to blockchain.
 
-Through these various mechanisms, Lease Notary aims to grow into a fair, transparent, and user-friendly rental system that solves longstanding problems in Taiwan’s rental housing market.
+On the blockchain side, the core component is the LeaseNotary contract, which is responsible for deploying individual Lease contracts. Once a landlord passes RWA verification and is confirmed to own a particular property, they can mint a LeaseNotary NFT via the frontend. During the minting process, the landlord inputs the property's physical address as a parameter, conceptually binding the property to the NFT. The precise implementation details may be adjusted according to future legal regulations.
 
-## Architecture
+Additionally, each time a LeaseNotary NFT is minted, a corresponding Lease contract is generated. This contract is also bound to the property address. However, this binding is done using the ENS (Ethereum Name Service) mechanism, allowing people to look up a property's associated Lease contract using its address.
 
-The system architecture can be broadly divided into two parts: the frontend and the on-chain code. The frontend includes interfaces for both (potential) tenants and landlords. On the blockchain, the core component is the LeaseNotary contract ([L2LeaseNotary.sol](./foundry/src/implementations/L2LeaseNotary.sol)), which is responsible for deploying individual Lease contracts ([Lease.sol](./foundry/src/implementations/Lease.sol)). It’s important to note that LeaseNotary is actually an ERC-4907 contract (i.e., an ERC-721 contract with built-in rental functionality).
+Through these various mechanisms, Lease Notary aims to evolve into a fair, transparent, and user-friendly rental system that addresses longstanding issues in Taiwan’s housing rental market.
 
-When a landlord passes the RWA verification and obtains ownership of a specific property, they can use the frontend to mint a LeaseNotary NFT. During the minting process, the landlord must input the house address as a parameter, thereby conceptually binding the property to the NFT. The specific implementation details will need to be refined based on future legal regulations.
+## How it's made
 
-Additionally, each time an NFT is minted, a corresponding Lease contract is also generated. This contract is also bound to the house address. However, this time the binding is done using the ENS mechanism, allowing a house address to be used to look up its associated Lease contract.
+For the on-chain design, a simple approach would be to store all data in a single contract. While this is technically feasible, it sacrifices the one-to-one nature of rental agreements.
+
+Instead, we treat each lease as an independent smart contract. These lease contracts are automatically deployed on Arbitrum/Polygon when a landlord mints a House NFT via the Lease Notary. Note that we actually name the lease notary contract L2LeaseNotary rather than LeaseNotary, because we’ve integrated it with the L2Registrar component from the ENS's Durin architecture.
+
+Moreover, each lease contract is automatically assigned an ENS name upon deployment to make future lookups easier. This ENS domain corresponds to the physical address of the property referred to by the House NFT. For example, "新竹市東區大學路1001號.leasenotary.eth" would be the ENS for a specific Lease contract.
+
+The landlord can set the rental terms on the Lease contract. Interested tenants can submit applications by depositing a security deposit directly into the contract. The landlord can ultimately approve only one tenant, and the deposits from the other applicants will be refunded.
+
+It’s important to note that L2LeaseNotary is actually an ERC-4907 contract (i.e., an ERC-721 contract with built-in rental functionality). This allows the landlord to designate the tenant as the "user" of the NFT, instead of transferring ownership.
+
+During the lease period, each time the tenant scans their NFC keycard, it queries the Lease Notary to check if they are the current NFT user. At that moment, Lease Notary syncs with the lease contract to confirm who holds the NFT usage rights.
+
+Through this system, we preserve the structure and intent of traditional paper lease agreements on-chain—while also achieving automatic enforcement, as if the contract were notarized.
 
 ## How to use
 
 ### Frontend
 
 ![flowchart](resources/flow.png)
+
+[live demo](https://ethglobal-2025-taipei-frontend-anl4g3dem-jayisakings-projects.vercel.app/)
 
 
 ### Foundry
