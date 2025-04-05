@@ -15,6 +15,10 @@ contract L2LeaseNotary is ERC4907, L2Registrar {
     mapping(uint256 => address) public leases;
     uint256 public tokenIdCounter = 0;
 
+    // 定義事件
+    event HouseMinted(uint256 indexed tokenId, string houseAddr, address owner);
+    event HouseUpdated(uint256 indexed tokenId, string houseAddr);
+
     constructor(
         address _usdc,
         address _l2Registry
@@ -38,6 +42,8 @@ contract L2LeaseNotary is ERC4907, L2Registrar {
         leases[tokenId] = address(lease);
         // this.register(houseAddr, address(lease));
 
+        emit HouseMinted(tokenId, houseAddr, msg.sender); // 觸發 HouseMinted 事件
+
         return tokenId;
     }
 
@@ -51,6 +57,8 @@ contract L2LeaseNotary is ERC4907, L2Registrar {
             "ERC721: update caller is not owner nor approved"
         );
         _houseAddrs[tokenId] = houseAddr;
+
+        emit HouseUpdated(tokenId, houseAddr); // 觸發 HouseUpdated 事件
     }
 
     /// @notice Get the house address for a given tokenId

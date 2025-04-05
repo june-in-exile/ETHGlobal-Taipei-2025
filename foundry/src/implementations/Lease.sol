@@ -46,6 +46,23 @@ contract Lease is ILease, Ownable {
     mapping(address => Application) private _applications;
     mapping(address => uint256) private _debtRecords;
 
+    event RentalTermsSet(
+        uint256 monthlyRent,
+        uint256 durationMonths,
+        uint256 depositInMonths
+    );
+    event ApplicationSubmitted(
+        address applicant,
+        uint256 starts,
+        uint256 monthlyRent,
+        uint256 durationMonths,
+        uint256 depositInMonths
+    );
+    event TenantApproved(address tenant);
+    event ApplicationWithdrawn(address applicant);
+    event RentPaid(address tenant, uint256 amount);
+    event HouseReclaimed(address owner);
+
     modifier onlyLandlordOrTenant() {
         require(
             msg.sender == owner() || msg.sender == _agreement.tenant,
@@ -74,6 +91,7 @@ contract Lease is ILease, Ownable {
         monthlyRent = _monthlyRent;
         durationMonths = _durationMonths;
         depositInMonths = _depositInMonths;
+        emit RentalTermsSet(_monthlyRent, _durationMonths, _depositInMonths);
     }
 
     /// @dev adjustment for demo purpose
@@ -109,6 +127,13 @@ contract Lease is ILease, Ownable {
         application.monthlyRent = monthlyRent;
         application.durationMonths = durationMonths;
         application.depositInMonths = depositInMonths;
+        emit ApplicationSubmitted(
+            msg.sender,
+            block.timestamp,
+            monthlyRent,
+            durationMonths,
+            depositInMonths
+        );
     }
 
     function applyToRent(uint256 intendedStartDay) public {
@@ -146,6 +171,13 @@ contract Lease is ILease, Ownable {
         application.monthlyRent = monthlyRent;
         application.durationMonths = durationMonths;
         application.depositInMonths = depositInMonths;
+        emit ApplicationSubmitted(
+            msg.sender,
+            _starts,
+            monthlyRent,
+            durationMonths,
+            depositInMonths
+        );
     }
 
     function _getNextTaiwanDay(
@@ -185,6 +217,7 @@ contract Lease is ILease, Ownable {
         delete _applicants;
 
         rented = true;
+        emit TenantApproved(tenant);
     }
 
     function _refund(address applicant) internal {
@@ -208,6 +241,7 @@ contract Lease is ILease, Ownable {
         _refund(msg.sender);
         delete _applications[msg.sender];
         _removeApplicant(msg.sender);
+        emit ApplicationWithdrawn(msg.sender);
     }
 
     function _removeApplicant(address applicant) internal {
@@ -248,6 +282,7 @@ contract Lease is ILease, Ownable {
         require(success, "USDC transfer failed");
 
         _agreement.rentPaid += amount;
+        emit RentPaid(msg.sender, amount);
     }
 
     function checkDebt() public view returns (uint256 debt) {
@@ -314,6 +349,7 @@ contract Lease is ILease, Ownable {
             remainingDeposit: 0
         });
         rented = false;
+        emit HouseReclaimed(owner());
     }
 
     function getUserInfo() external view returns (ERC4907.UserInfo memory) {
@@ -328,7 +364,12 @@ contract Lease is ILease, Ownable {
         return userInfo;
     }
 
-    function checkAgreement() external view onlyLandlordOrTenant returns (Agreement memory) {
+    function checkAgreement()
+        external
+        view
+        onlyLandlordOrTenant
+        returns (Agreement memory)
+    {
         return _agreement;
     }
 }
