@@ -1,4 +1,6 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.28;
+
 import "../implementations/ERC4907.sol";
 
 interface ILease {
@@ -12,7 +14,7 @@ interface ILease {
     /// @notice Apply to rent by depositing security payment
     /// @dev Stores each applicant's terms (start date, duration, etc.)
     /// @param intendedStartDay Timestamp of day before desired start
-    function applyToRent(uint256 intendedStartDay) external payable;
+    function applyToRent(uint256 intendedStartDay) external;
 
     /// @notice Approve tenant and refund others
     function approveTenant(address tenant) external;

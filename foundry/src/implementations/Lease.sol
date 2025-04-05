@@ -27,7 +27,7 @@ contract Lease is ILease, Ownable {
     }
 
     IERC20 public immutable USDC;
-    address public immutable leaseNotary;
+    LeaseNotary public immutable leaseNotary;
     uint256 public immutable tokenId;
     string public houseAddr;
 
@@ -41,17 +41,11 @@ contract Lease is ILease, Ownable {
     mapping(address => Application) private _applications;
     mapping(address => uint256) private _debtRecords;
 
-    constructor(
-        address _usdc,
-        address _leaseNotary,
-        uint256 _tokenId
-    ) Ownable(msg.sender) {
-        leaseNotary = _leaseNotary;
+    constructor(address _leaseNotary, uint256 _tokenId) Ownable(msg.sender) {
+        leaseNotary = LeaseNotary(_leaseNotary);
         tokenId = _tokenId;
-
-        LeaseNotary notary = LeaseNotary(_leaseNotary);
-        USDC = IERC20(_usdc);
-        houseAddr = notary.house(_tokenId);
+        USDC = IERC20(leaseNotary.USDC());
+        houseAddr = leaseNotary.house(_tokenId);
     }
 
     function setRentalTerms(
@@ -69,12 +63,12 @@ contract Lease is ILease, Ownable {
         depositInMonths = _depositInMonths;
     }
 
-    function applyToRent(uint256 intendedStartDay) public payable {
+    function applyToRent(uint256 intendedStartDay) public {
         require(!rented, "House is rented");
         require(msg.sender != owner(), "Caller is the landlord");
-        require(!hasApplied(), "Already applied");
+        require(!_hasApplied(), "Already applied");
 
-        uint256 _starts = getNextTaiwanDay(intendedStartDay);
+        uint256 _starts = _getNextTaiwanDay(intendedStartDay);
         require(block.timestamp < _starts, "Lease start time has passed");
 
         uint256 depositAmount = monthlyRent * depositInMonths;
@@ -106,7 +100,7 @@ contract Lease is ILease, Ownable {
         application.depositInMonths = depositInMonths;
     }
 
-    function getNextTaiwanDay(
+    function _getNextTaiwanDay(
         uint256 timestamp
     ) internal pure returns (uint256) {
         timestamp += 8 hours;
@@ -117,7 +111,6 @@ contract Lease is ILease, Ownable {
 
     function approveTenant(address tenant) public onlyOwner {
         require(!rented, "House is rented");
-        rented = true;
 
         Application memory application = _applications[tenant];
 
@@ -136,15 +129,17 @@ contract Lease is ILease, Ownable {
         for (uint256 i = 0; i < _applicants.length; i++) {
             address applicant = _applicants[i];
             if (applicant != tenant) {
-                refund(applicant);
+                _refund(applicant);
                 delete _applications[applicant];
             }
         }
 
         delete _applicants;
+
+        rented = true;
     }
 
-    function refund(address applicant) internal {
+    function _refund(address applicant) internal {
         uint256 depositAmount;
         if (msg.sender == owner() && rented) {
             require(applicant == _agreement.tenant, "Refund not to tenant");
@@ -154,17 +149,30 @@ contract Lease is ILease, Ownable {
                 _applications[applicant].monthlyRent *
                 _applications[applicant].depositInMonths;
         }
-        require(depositAmount > 0, "No deposit");
-        bool success = USDC.transfer(applicant, depositAmount);
-        require(success, "USDC transfer failed");
+        if (depositAmount > 0) {
+            bool success = USDC.transfer(applicant, depositAmount);
+            require(success, "USDC transfer failed");
+        }
     }
 
     function withdrawApplication() public {
-        require(hasApplied(), "Not applied yet");
-        refund(msg.sender);
+        require(_hasApplied(), "Not applied yet");
+        _refund(msg.sender);
+        delete _applications[msg.sender];
+        _removeApplicant(msg.sender);
     }
 
-    function hasApplied() internal view returns (bool) {
+    function _removeApplicant(address applicant) internal {
+        for (uint256 i = 0; i < _applicants.length; i++) {
+            if (_applicants[i] == applicant) {
+                _applicants[i] = _applicants[_applicants.length - 1];
+                _applicants.pop();
+                break;
+            }
+        }
+    }
+
+    function _hasApplied() internal view returns (bool) {
         bool result = false;
         for (uint256 i = 0; i < _applicants.length; i++) {
             if (msg.sender == _applicants[i]) {
@@ -235,7 +243,7 @@ contract Lease is ILease, Ownable {
             _agreement.remainingDeposit -= debt;
             _agreement.rentPaid += debt;
             if (_agreement.remainingDeposit > 0) {
-                refund(_agreement.tenant);
+                _refund(_agreement.tenant);
             }
         } else {
             // TODO: punishment
@@ -247,7 +255,6 @@ contract Lease is ILease, Ownable {
                 _agreement.remainingDeposit;
         }
 
-        rented = false;
         _agreement = Agreement({
             tenant: address(0),
             starts: 0,
@@ -258,6 +265,7 @@ contract Lease is ILease, Ownable {
             rentPaid: 0,
             remainingDeposit: 0
         });
+        rented = false;
     }
 
     function getUserInfo() external view returns (ERC4907.UserInfo memory) {
@@ -270,5 +278,9 @@ contract Lease is ILease, Ownable {
             userInfo.expires = uint64(_agreement.expires);
         }
         return userInfo;
+    }
+
+    function checkAgreement() external view onlyOwner returns (Agreement memory) {
+        return _agreement;
     }
 }

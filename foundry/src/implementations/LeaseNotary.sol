@@ -1,26 +1,50 @@
 // SPDX-License-Identifier: CC0-1.0
 pragma solidity ^0.8.12;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../interfaces/IL2Registry.sol";
+import "./L2Registrar.sol";
 import "./Lease.sol";
 import "./ERC4907.sol";
 
 contract LeaseNotary is ERC4907 {
-    IL2Registry l2Registry =
-        IL2Registry(0x257Ed5B68C2A32273Db8490e744028a63aCC771F);
+    IERC20 public immutable USDC;
+    IL2Registry public immutable l2Registry;
+    L2Registrar public immutable l2Registrar;
 
     mapping(uint256 => string) private _houseAddrs;
+    mapping(uint256 => address) public leases;
     uint256 public tokenIdCounter = 0;
 
-    constructor() ERC4907("HouseNFT", "HSN") {}
+    constructor(
+        address _usdc,
+        address _l2Registry,
+        address _l2Registrar
+    ) ERC4907("HouseNFT", "HSN") {
+        USDC = IERC20(_usdc);
+        l2Registry = IL2Registry(_l2Registry);
+        l2Registrar = L2Registrar(_l2Registrar);
+    }
 
     /// @notice Mint a new NFT with a house address
     /// @param houseAddr The address of the house to associate with the NFT
     /// @return The ID of the newly minted NFT
     function mint(string memory houseAddr) public returns (uint256) {
+        require(
+            l2Registrar.available(houseAddr),
+            "house address already registered"
+        );
+
         uint256 tokenId = ++tokenIdCounter;
         _safeMint(msg.sender, tokenId);
         updateHouse(tokenId, houseAddr);
+
+        Lease lease = new Lease(address(this), tokenId);
+        lease.transferOwnership(msg.sender);
+        leases[tokenId] = address(lease);
+
+        // l2Registrar.register(houseAddr, address(lease));
+
         return tokenId;
     }
 

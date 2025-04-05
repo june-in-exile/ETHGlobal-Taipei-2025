@@ -9,6 +9,7 @@ out/
 
 # Docs
 docs/
+constructor-args.txt
 
 # Dotenv file
 .env
