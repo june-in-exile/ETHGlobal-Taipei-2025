@@ -62,7 +62,7 @@ const PostProperty = () => {
   const getLeaseContract = async (address) => {
       if (!isConnected || !web3) return null;
     
-      const contract = new web3.eth.Contract(L2LeaseNotaryABI, process.env.NEXT_PUBLIC_L2LEASE_NOTARY_ADDRESS);
+      const contract = new web3.eth.Contract(L2LeaseNotaryABI, process.env.NEXT_PUBLIC_POL_L2LEASE_NOTARY_ADDRESS);
     
       return new Promise((resolve, reject) => {
         let found = false;
@@ -120,7 +120,7 @@ const PostProperty = () => {
         return;
       } else {
         const web3 = new Web3(window.ethereum);
-        const contract = new web3.eth.Contract(L2LeaseNotaryABI, process.env.NEXT_PUBLIC_L2LEASE_NOTARY_ADDRESS);  
+        const contract = new web3.eth.Contract(L2LeaseNotaryABI, process.env.NEXT_PUBLIC_POL_L2LEASE_NOTARY_ADDRESS);  
         const result = await contract.methods.mint(address).send({ from: account });
         const leaseAddress = await getLeaseContract(address);
         

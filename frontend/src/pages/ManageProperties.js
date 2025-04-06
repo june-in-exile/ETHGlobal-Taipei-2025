@@ -45,7 +45,7 @@ const ManageProperties = () => {
 
       const contract = new web3.eth.Contract(
         L2LeaseNotaryABI, 
-        process.env.NEXT_PUBLIC_L2LEASE_NOTARY_ADDRESS
+        process.env.NEXT_PUBLIC_POL_L2LEASE_NOTARY_ADDRESS
       );
 
       // Get all the HouseMinted events

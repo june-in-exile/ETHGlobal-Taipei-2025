@@ -46,7 +46,7 @@ const MyRent = () => {
       // Get the L2LeaseNotary contract
       const notaryContract = new web3.eth.Contract(
         L2LeaseNotaryABI,
-        process.env.NEXT_PUBLIC_L2LEASE_NOTARY_ADDRESS
+        process.env.NEXT_PUBLIC_POL_L2LEASE_NOTARY_ADDRESS
       );
       
       // Get the total number of tokens
