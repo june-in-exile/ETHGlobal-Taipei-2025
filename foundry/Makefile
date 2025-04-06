@@ -2,19 +2,21 @@ include .env
 
 MY_WALLET := $(TENANT_A)
 MY_PRIVATE_KEY := $(TENANT_A_PRIVATE_KEY)
+ANVIL_RPC_URL := 127.0.0.1:8545
+# ARB_SEPOLIA_RPC_URL := 127.0.0.1:8545
 
 # -----------------------skip this section--------------------------
 
-# fork:
-# 	anvil --fork-url $(ARB_SEPOLIA_RPC_URL)
+fork:
+	anvil --fork-url $(ARB_SEPOLIA_RPC_URL) --chain-id 421614
 
-# deploy_lease_to_forked_arb_sepolia:
-# 	@forge build
-# 	@forge script \
-#     	--broadcast \
-# 		--rpc-url $(ANVIL_RPC_URL) \
-#     	--private-key $(ANVIL_ALICE_PRIVATE_KEY) \
-#     	script/Lease.s.sol:LeaseScript
+deploy_l2LeaseNotary_to_forked_arb_sepolia:
+	@forge build
+	@forge script \
+    	--broadcast \
+		--fork-url $(ANVIL_RPC_URL) \
+    	--private-key $(MY_PRIVATE_KEY) \
+    	script/L2LeaseNotary.s.sol:L2LeaseNotaryScript
 
 # deploy_lease_to_arb_sepolia:
 # 	@forge build
@@ -36,7 +38,7 @@ MY_PRIVATE_KEY := $(TENANT_A_PRIVATE_KEY)
 # auto_mine:
 # 	cast rpc evm_setAutomine true
 
-deploy_l2leaseNotary_to_pol_amoy:
+deploy_l2LeaseNotary_to_pol_amoy:
 	@forge build
 	@forge script \
 		--broadcast \
@@ -46,10 +48,20 @@ deploy_l2leaseNotary_to_pol_amoy:
 		--private-key $(MY_PRIVATE_KEY) \
 		script/L2LeaseNotary.s.sol:L2LeaseNotaryScript
 
+deploy_l2LeaseNotary_to_base_sepolia:
+	@forge build
+	@forge script \
+		--broadcast \
+		--verify \
+		--rpc-url $(BASE_SEPOLIA_RPC_URL) \
+		--etherscan-api-key $(BASESCAN_API_KEY) \
+		--private-key $(MY_PRIVATE_KEY) \
+		script/L2LeaseNotary.s.sol:L2LeaseNotaryScript
+
 
 # -----------------------skip this section--------------------------
 
-deploy_l2leaseNotary_to_arb_sepolia:
+deploy_l2LeaseNotary_to_arb_sepolia:
 	@forge build
 	@forge script \
 		--broadcast \
@@ -72,12 +84,12 @@ update_constructor_args:
 mint:
 	cast send --from $(LANDLORD) --private-key $(LANDLORD_PRIVATE_KEY) $(L2LEASE_NOTARY_ADDRESS) --rpc-url $(ARB_SEPOLIA_RPC_URL) \
 	"mint(string)" \
-	"新竹市東區大學路1006號"
+	"新竹市東區大學路2號"
 	
-check_lease_1:
+findLease:
 	cast call $(L2LEASE_NOTARY_ADDRESS) --rpc-url $(ARB_SEPOLIA_RPC_URL) \
-	"leases(uint256)(address)" \
-	1
+	"findLease(string)(address)" \
+	"新竹市東區大學路2號"
 
 # update LEASE_ADDRESS in .env
 
@@ -153,11 +165,18 @@ approveTenant_A:
 # 2
 
 A_canUse:
-	cast call --from $(LANDLORD) $(LEASE_ADDRESS) --rpc-url $(ARB_SEPOLIA_RPC_URL) \
+	cast call --from $(TENANT_A) $(L2LEASE_NOTARY_ADDRESS) --rpc-url $(ARB_SEPOLIA_RPC_URL) \
 		"canUse(string)" \
-		"新竹市東區大學路1006號"
+		"新竹市東區大學路1號"
 
-# failed currently, but it should work after bug fixed
+syncUser:
+	cast call --from $(LANDLORD) $(L2LEASE_NOTARY_ADDRESS) --rpc-url $(ARB_SEPOLIA_RPC_URL) \
+		"syncUser(uint256)" \
+		1
+
+# getUserInfo:
+# 	cast call --from $(LANDLORD) $(LEASE_ADDRESS) --rpc-url $(ARB_SEPOLIA_RPC_URL) \
+# 		"getUserInfo()"
 
 # after 12 seconds... (assuming 1 second = 30 days IRL)
 

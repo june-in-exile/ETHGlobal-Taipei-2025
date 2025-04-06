@@ -74,6 +74,7 @@ contract Lease is ILease, ERC721Holder, Ownable {
 
     constructor(address _l2leaseNotary, uint256 _tokenId) Ownable(msg.sender) {
         l2leaseNotary = L2LeaseNotary(_l2leaseNotary);
+        tokenId = _tokenId;
         USDC = IERC20(l2leaseNotary.USDC());
         houseAddr = l2leaseNotary.house(_tokenId);
     }
@@ -85,7 +86,7 @@ contract Lease is ILease, ERC721Holder, Ownable {
     ) public onlyOwner {
         require(!rented, "House is rented");
 
-        require(_monthlyRent >= 0, "_monthlyRent is less than 1");
+        require(_monthlyRent >= 0, "_monthlyRent is negative");
         require(_durationMonths > 0, "_durationMonths is less than 1");
         require(_depositInMonths >= 0, "_durationMonths is negative");
         monthlyRent = _monthlyRent;

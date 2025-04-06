@@ -7,22 +7,18 @@ import "./L2Registrar.sol";
 import "./Lease.sol";
 import "./ERC4907.sol";
 
-contract L2LeaseNotary is ERC4907, L2Registrar {
+contract L2LeaseNotary is ERC4907 {
     IERC20 public immutable USDC;
     IL2Registry public immutable l2Registry;
 
     mapping(uint256 => string) private _houseAddrs;
-    mapping(uint256 => address) public leases;
     uint256 public tokenIdCounter = 0;
 
     // 定義事件
     event HouseMinted(uint256 indexed tokenId, string houseAddr, address owner);
     event HouseUpdated(uint256 indexed tokenId, string houseAddr);
 
-    constructor(
-        address _usdc,
-        address _l2Registry
-    ) ERC4907("HouseNFT", "HSN") L2Registrar(_l2Registry) {
+    constructor(address _usdc, address _l2Registry) ERC4907("HouseNFT", "HSN") {
         USDC = IERC20(_usdc);
         l2Registry = IL2Registry(_l2Registry);
     }
@@ -31,16 +27,34 @@ contract L2LeaseNotary is ERC4907, L2Registrar {
     /// @param houseAddr The address of the house to associate with the NFT
     /// @return The ID of the newly minted NFT
     function mint(string memory houseAddr) public returns (uint256) {
-        require(this.available(houseAddr), "house address already registered");
-
         uint256 tokenId = ++tokenIdCounter;
         _safeMint(msg.sender, tokenId);
         updateHouse(tokenId, houseAddr);
 
         Lease lease = new Lease(address(this), tokenId);
         lease.transferOwnership(msg.sender);
-        leases[tokenId] = address(lease);
-        // this.register(houseAddr, address(lease));
+
+        bytes32 node = l2Registry.makeNode(l2Registry.baseNode(), houseAddr);
+        bytes memory addr = abi.encodePacked(address(lease)); // Convert address to bytes
+
+        uint256 chainId = 421614; // arbitrum sepolia
+        uint256 coinType = (0x80000000 | chainId) >> 0;
+
+        // Set the forward address for the current chain. This is needed for reverse resolution.
+        // E.g. if this contract is deployed to Base, set an address for chainId 8453 which is
+        // coinType 2147492101 according to ENSIP-11.
+        l2Registry.setAddr(node, coinType, addr);
+
+        // Set the forward address for mainnet ETH (coinType 60) for easier debugging.
+        l2Registry.setAddr(node, 60, addr);
+
+        // Register the name in the L2 registry
+        l2Registry.createSubnode(
+            l2Registry.baseNode(),
+            houseAddr,
+            address(lease),
+            new bytes[](0)
+        );
 
         emit HouseMinted(tokenId, houseAddr, msg.sender); // 觸發 HouseMinted 事件
 
@@ -74,26 +88,34 @@ contract L2LeaseNotary is ERC4907, L2Registrar {
     }
 
     function canUse(string memory houseAddr) public returns (bool) {
-        Lease lease = findLease(houseAddr);
-        address user = this.userOf(lease.tokenId());
+        Lease lease = Lease(findLease(houseAddr));
+        uint256 tokenId = lease.tokenId();
+        address user = this.userOf(tokenId);
         if (user == address(0)) {
-            syncUser(lease.tokenId());
+            // FIX: uuthorized user (e.g., tenant) cannot call syncUser
+            syncUser(tokenId);
         }
-        return (msg.sender == this.userOf(lease.tokenId()));
+        return (msg.sender == this.userOf(tokenId));
     }
 
     /// @notice Sync the user information with the NFT's lease contract
-    function syncUser(uint256 tokenId) internal {
-        Lease lease = findLease(_houseAddrs[tokenId]);
-        ERC4907.UserInfo memory info = lease.getUserInfo();
-        this.setUser(tokenId, info.user, info.expires);
+    /// @dev cannot be called properlly
+    function syncUser(uint256 tokenId) public {
+        Lease lease = Lease(findLease(_houseAddrs[tokenId]));
+        ERC4907.UserInfo memory userInfo = lease.getUserInfo();
+        _users[tokenId] = ERC4907.UserInfo({
+            user: userInfo.user,
+            expires: userInfo.expires
+        });
+
+        emit UpdateUser(tokenId, userInfo.user, userInfo.expires);
     }
 
     /// @notice Find the lease contract by its ENS label (i.e., hosueAddr)
-    function findLease(string memory label) public view returns (Lease) {
+    function findLease(string memory label) public view returns (address) {
         string memory ens = string.concat(label, ".leasenotary.eth");
         bytes32 _hash = l2Registry.namehash(ens);
         address lease = l2Registry.addr(_hash);
-        return Lease(lease);
+        return lease;
     }
 }
